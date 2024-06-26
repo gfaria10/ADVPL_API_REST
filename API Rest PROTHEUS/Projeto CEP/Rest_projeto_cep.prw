@@ -49,63 +49,75 @@ return lRet
 
 WSMETHOD POST WSSERVICE cadastro_cep
 
-    Local lRet     := .T.
-    Local cJson    := self:GetContent()
-    Local oJson    := JsonObject():New()
-    Local xRetJson := ''
-    Local oModel
+	Local lRet     := .T.
+	Local cJson    := self:GetContent()
+	Local oJson    := JsonObject():New()
+	Local xRetJson := ''
+	Local oModel
 
-    Private lMsErroAuto    := .F.
-    Private lMsHelpAuto    := .T.
-    Private lAutoErrNoFile := .T.
+	Private lMsErroAuto    := .F.
+	Private lMsHelpAuto    := .T.
+	Private lAutoErrNoFile := .T.
 
 	PREPARE ENVIRONMENT EMPRESA "99" FILIAL "01"
 
-    If !Empty(cJson)
-        xRetJson := oJson:FromJSON(cJson)
+    // Verifica se é uma requisição OPTIONS (preflight)
+    // If (self:getRequestMethod() == "OPTIONS")
+    //     self:setHeader("Access-Control-Allow-Origin", "http://fluig.fsw.totvsip.com.br:9191")
+    //     self:setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+    //     self:setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    //     self:setHeader("Access-Control-Max-Age", "86400") // Cache da resposta preflight por 24 horas
+    //     self:sendResponse(204, "") // Responde com status 204 No Content
+    //     Return
+    // EndIf
 
-        If ValType(xRetJson) == "U"
-            // Carrega o modelo usando o nome correto
-            oModel := FwLoadModel("MVCZA1")
+	If !Empty(cJson)
+		xRetJson := oJson:FromJSON(cJson)
 
-            If oModel == Nil
-                SetRestFault(500, "Erro ao carregar o modelo! Modelo MVCZA1M não encontrado.")
-                Return .F.
-            EndIf
+		If ValType(xRetJson) == "U"
+			// Carrega o modelo usando o nome correto
+			oModel := FwLoadModel("MVCZA1")
 
-            oModel:SetOperation(3)
-            oModel:Activate()
+			If oModel == Nil
+				SetRestFault(500, "Erro ao carregar o modelo! Modelo MVCZA1M não encontrado.")
+				Return .F.
+			EndIf
 
-            oModel:SetValue("FORMZA1", "ZA1_COD", oJson['codigo'])
-            oModel:SetValue("FORMZA1", "ZA1_CEP", oJson['cep'])
-            oModel:SetValue("FORMZA1", "ZA1_LOGRA", oJson['logradouro'])
-            oModel:SetValue("FORMZA1", "ZA1_COMPL", oJson['complemento'])
-            oModel:SetValue("FORMZA1", "ZA1_BAIRRO", oJson['bairro'])
-            oModel:SetValue("FORMZA1", "ZA1_LOCALI", oJson['localidade'])
-            oModel:SetValue("FORMZA1", "ZA1_UF", oJson['uf'])
+			oModel:SetOperation(3)
+			oModel:Activate()
 
-            If oModel:VldData()
-                oModel:CommitData()
-                Conout("Registro INCLUIDO!")
-            Else
-                SetRestFault(500, "Erro ao incluir: " + oModel:GetErrorMessage())
-                lRet := .F.
-            EndIf
+			oModel:SetValue("FORMZA1", "ZA1_COD", oJson['codigo'])
+			oModel:SetValue("FORMZA1", "ZA1_CEP", oJson['cep'])
+			oModel:SetValue("FORMZA1", "ZA1_LOGRA", oJson['logradouro'])
+			oModel:SetValue("FORMZA1", "ZA1_COMPL", oJson['complemento'])
+			oModel:SetValue("FORMZA1", "ZA1_BAIRRO", oJson['bairro'])
+			oModel:SetValue("FORMZA1", "ZA1_LOCALI", oJson['localidade'])
+			oModel:SetValue("FORMZA1", "ZA1_UF", oJson['uf'])
 
-            oModel:DeActivate()
-            oModel:Destroy()
-            oModel := Nil
+			If oModel:VldData()
+				oModel:CommitData()
+				Conout("Registro INCLUIDO!")
+			Else
+				SetRestFault(500, "Erro ao incluir: " + oModel:GetErrorMessage())
+				lRet := .F.
+			EndIf
 
-        Else
-            SetRestFault(400, "Falha na leitura do arquivo JSON")
-            lRet := .F.
-        EndIf
+			oModel:DeActivate()
+			oModel:Destroy()
+			oModel := Nil
 
-    Else
-        SetRestFault(400, "Sem conteúdo")
-        lRet := .F.
-    EndIf
+		Else
+			SetRestFault(400, "Falha na leitura do arquivo JSON")
+			lRet := .F.
+		EndIf
 
-    ::setHeader("Content-Type", "application/json")
+	Else
+		SetRestFault(400, "Sem conteúdo")
+		lRet := .F.
+	EndIf
 
-    Return lRet
+	::setHeader("Content-Type", "application/json")
+	::setHeader("Access-Control-Allow-Origin", "http://fluig.fsw.totvsip.com.br:9191")
+	::setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+
+Return lRet
